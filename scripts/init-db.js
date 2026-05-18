@@ -72,65 +72,190 @@ db.exec(`
 
 console.log('Schema created successfully');
 
-// Create default admin user
-const adminId = 'user_' + uuidv4();
-const adminPassword = 'admin123456';
-const salt = bcrypt.genSaltSync(10);
-const hash = bcrypt.hashSync(adminPassword, salt);
-
+// Get or create admin user
+let adminId = null;
 try {
-  db.prepare(`
-    INSERT INTO users (id, email, password_hash, name, role)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(adminId, 'admin@test.com', hash, 'Admin User', 'admin');
-  console.log('✓ Default admin user created');
-  console.log('  Email: admin@test.com');
-  console.log('  Password: admin123456');
-} catch (error) {
-  if (error.message.includes('UNIQUE constraint failed')) {
+  const existingAdmin = db.prepare('SELECT id FROM users WHERE email = ?').get('admin@test.com');
+  if (existingAdmin) {
+    adminId = existingAdmin.id;
     console.log('✓ Admin user already exists');
   } else {
-    throw error;
+    adminId = 'user_' + uuidv4();
+    const adminPassword = 'admin123456';
+    const salt = bcrypt.genSaltSync(10);
+    const hash = bcrypt.hashSync(adminPassword, salt);
+    db.prepare(`
+      INSERT INTO users (id, email, password_hash, name, role)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(adminId, 'admin@test.com', hash, 'Admin User', 'admin');
+    console.log('✓ Default admin user created');
+    console.log('  Email: admin@test.com');
+    console.log('  Password: admin123456');
   }
+} catch (error) {
+  console.error('Error with admin user:', error.message);
+  process.exit(1);
 }
 
-// Add sample shipments
+// Add diverse sample shipments with different statuses
 const shipments = [
   {
-    tracking_code: 'ABJ-001-2024',
+    tracking_code: 'ABJ-2024-001',
     customer_name: 'Jean Dupont',
     customer_phone: '+225 07 12 34 56 78',
     customer_email: 'jean@example.com',
     origin: 'Shanghai',
     destination: 'Abidjan',
-    current_status: 'En transit',
-    estimated_arrival_date: '2024-06-15',
-    notes: 'Standard shipment'
+    current_status: 'Reçu en Chine',
+    estimated_arrival_date: '2026-06-15',
+    notes: 'Just received at warehouse - processing'
   },
   {
-    tracking_code: 'ABJ-002-2024',
+    tracking_code: 'ABJ-2024-002',
     customer_name: 'Marie Kouakou',
     customer_phone: '+225 07 87 65 43 21',
     customer_email: 'marie@example.com',
     origin: 'Guangzhou',
     destination: 'Abidjan',
-    current_status: 'Expédié',
-    estimated_arrival_date: '2024-06-20',
-    notes: 'Fragile items'
+    current_status: 'En préparation',
+    estimated_arrival_date: '2026-06-20',
+    notes: 'Being packed for shipment'
   },
   {
-    tracking_code: 'ABJ-003-2024',
+    tracking_code: 'ABJ-2024-003',
     customer_name: 'Ahmed Ibrahim',
     customer_phone: '+225 06 12 34 56 78',
-    customer_email: null,
+    customer_email: 'ahmed@example.com',
     origin: 'Hong Kong',
     destination: 'Abidjan',
+    current_status: 'Expédié',
+    estimated_arrival_date: '2026-06-10',
+    notes: 'Shipped from port - en route'
+  },
+  {
+    tracking_code: 'ABJ-2024-004',
+    customer_name: 'Fatou Diallo',
+    customer_phone: '+225 05 98 76 54 32',
+    customer_email: null,
+    origin: 'Shenzhen',
+    destination: 'Abidjan',
+    current_status: 'En transit',
+    estimated_arrival_date: '2026-06-08',
+    notes: 'In transit - halfway to destination'
+  },
+  {
+    tracking_code: 'ABJ-2024-005',
+    customer_name: 'Pierre Martin',
+    customer_phone: '+225 04 56 78 90 12',
+    customer_email: 'pierre@example.com',
+    origin: 'Dalian',
+    destination: 'Abidjan',
     current_status: 'Livré',
-    estimated_arrival_date: '2024-06-10',
-    notes: 'Delivered successfully'
+    estimated_arrival_date: '2026-06-01',
+    notes: 'Successfully delivered to customer'
+  },
+  {
+    tracking_code: 'ABJ-2024-006',
+    customer_name: 'Aisha Hassan',
+    customer_phone: '+225 03 21 09 87 65',
+    customer_email: 'aisha@example.com',
+    origin: 'Ningbo',
+    destination: 'Abidjan',
+    current_status: 'Retardé',
+    estimated_arrival_date: '2026-05-28',
+    notes: 'Delayed due to customs - investigating'
+  },
+  {
+    tracking_code: 'INTL-2024-001',
+    customer_name: 'Sophie Laurent',
+    customer_phone: '+225 09 87 65 43 21',
+    customer_email: 'sophie@example.com',
+    origin: 'Shanghai',
+    destination: 'Abidjan',
+    current_status: 'Reçu en Chine',
+    estimated_arrival_date: '2026-06-25',
+    notes: 'Electronics shipment - fragile'
+  },
+  {
+    tracking_code: 'INTL-2024-002',
+    customer_name: 'David Okonkwo',
+    customer_phone: '+225 08 76 54 32 10',
+    customer_email: null,
+    origin: 'Qingdao',
+    destination: 'Abidjan',
+    current_status: 'En préparation',
+    estimated_arrival_date: '2026-06-22',
+    notes: 'Textile goods - bulk order'
+  },
+  {
+    tracking_code: 'INTL-2024-003',
+    customer_name: 'Yuki Tanaka',
+    customer_phone: '+225 07 65 43 21 09',
+    customer_email: 'yuki@example.com',
+    origin: 'Tianjin',
+    destination: 'Abidjan',
+    current_status: 'Expédié',
+    estimated_arrival_date: '2026-06-18',
+    notes: 'Industrial parts - high priority'
+  },
+  {
+    tracking_code: 'INTL-2024-004',
+    customer_name: 'Carlos Rodriguez',
+    customer_phone: '+225 06 54 32 10 98',
+    customer_email: 'carlos@example.com',
+    origin: 'Xiamen',
+    destination: 'Abidjan',
+    current_status: 'En transit',
+    estimated_arrival_date: '2026-06-12',
+    notes: 'Machinery components'
+  },
+  {
+    tracking_code: 'INTL-2024-005',
+    customer_name: 'Amina Ndiaye',
+    customer_phone: '+225 05 43 21 09 87',
+    customer_email: 'amina@example.com',
+    origin: 'Fuzhou',
+    destination: 'Abidjan',
+    current_status: 'Livré',
+    estimated_arrival_date: '2026-06-05',
+    notes: 'Consumer goods delivered'
+  },
+  {
+    tracking_code: 'INTL-2024-006',
+    customer_name: 'James Osei',
+    customer_phone: '+225 04 32 10 98 76',
+    customer_email: null,
+    origin: 'Guangzhou',
+    destination: 'Abidjan',
+    current_status: 'Retardé',
+    estimated_arrival_date: '2026-06-02',
+    notes: 'Weather delay at port'
+  },
+  {
+    tracking_code: 'EXPRESS-001',
+    customer_name: 'Lisa Chen',
+    customer_phone: '+225 03 10 98 76 54',
+    customer_email: 'lisa@example.com',
+    origin: 'Shanghai',
+    destination: 'Abidjan',
+    current_status: 'Reçu en Chine',
+    estimated_arrival_date: '2026-06-10',
+    notes: 'Express delivery - time sensitive'
+  },
+  {
+    tracking_code: 'EXPRESS-002',
+    customer_name: 'Mohammed Al-Rashid',
+    customer_phone: '+225 02 98 76 54 32',
+    customer_email: 'mohammed@example.com',
+    origin: 'Shenzhen',
+    destination: 'Abidjan',
+    current_status: 'En transit',
+    estimated_arrival_date: '2026-06-08',
+    notes: 'Express shipment in transit'
   }
 ];
 
+let successCount = 0;
 shipments.forEach(shipmentData => {
   try {
     const shipmentId = 'ship_' + uuidv4();
@@ -166,10 +291,11 @@ shipments.forEach(shipmentData => {
       adminId
     );
 
-    console.log(`✓ Sample shipment created: ${shipmentData.tracking_code}`);
+    console.log(`✓ Shipment created: ${shipmentData.tracking_code} - ${shipmentData.current_status}`);
+    successCount++;
   } catch (error) {
     if (!error.message.includes('UNIQUE constraint failed')) {
-      throw error;
+      console.error(`✗ Error creating ${shipmentData.tracking_code}:`, error.message);
     }
   }
 });
@@ -177,3 +303,6 @@ shipments.forEach(shipmentData => {
 db.close();
 console.log('\n✅ Database initialization complete!');
 console.log(`📁 Database location: ${dbPath}`);
+console.log(`📦 Shipments created: ${successCount}/${shipments.length}`);
+console.log('\n📋 Tracking codes for testing:');
+shipments.forEach(s => console.log(`   • ${s.tracking_code} - ${s.current_status}`));
